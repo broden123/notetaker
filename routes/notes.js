@@ -1,6 +1,7 @@
 const notes = require("express").Router();
 const uuid = require("../helpers/uuid");
 const { readFromFile, readAndAppend } = require("../helpers/fsutils");
+const fs = require("fs");
 
 // GET request for notes
 notes.get("/", (req, res) => {
@@ -21,7 +22,7 @@ notes.post("/", (req, res) => {
     const newNote = {
       title,
       text,
-      note_id: uuid(),
+      id: uuid(),
     };
 
     readAndAppend(newNote, "./db/notes.json");
@@ -29,6 +30,30 @@ notes.post("/", (req, res) => {
   } else {
     res.error("Error in adding note!");
   }
+});
+
+notes.delete("/:id", (req, res) => {
+  fs.readFile("./db/notes.json", "utf8", (err, data) => {
+    if (err) {
+      console.error(err);
+    } else {
+      const parsedNotes = JSON.parse(data);
+
+      console.log("req params", req.params.id);
+      const itemIndex = parsedNotes.findIndex(({ id }) => id === req.params.id);
+      if (itemIndex >= 0) {
+        console.log(itemIndex);
+        parsedNotes.splice(itemIndex, 1);
+      }
+      fs.writeFile(
+        "./db/notes.json",
+        JSON.stringify(parsedNotes, null, 4),
+        (writeErr) =>
+          writeErr ? console.error(writeErr) : console.info("Notes Updated!")
+      );
+    }
+  });
+  res.json("note deleted!");
 });
 
 module.exports = notes;
